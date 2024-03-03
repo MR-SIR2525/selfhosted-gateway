@@ -27,7 +27,7 @@ function cleanup {
     fi
 }
 trap cleanup ERR
-#trap cleanup EXIT
+trap cleanup EXIT
 
 # Default Link test
 normal_test_proceed=true
@@ -52,15 +52,15 @@ if [ "$normal_test_proceed" = true ]; then
     fi
 
     # cleanup
-    # docker compose -f $testLinkFile down
-    # docker rm -f app-example-com
-    # rm $testLinkFile
+    docker compose -f $testLinkFile down
+    docker rm -f app-example-com
+    rm $testLinkFile
 else
     echo "******************* Skipping normal link test... \n(normal_test_greenlight was false)"
 fi
-#docker rm -f app-example-com
+
 # Caddy + TLS Link test
-caddy_greenlight=false               # andrew's sentinel thing
+caddy_greenlight=true               # andrew's sentinel thing
 if [ "$caddy_greenlight" = true ]; then
     echo "******************* Testing Caddy TLS Proxy Link *******************"
     # Test the link using  CADDY_TLS_PROXY: true
@@ -95,6 +95,11 @@ if [ "$caddy_greenlight" = true ]; then
     if ! docker compose exec gateway curl -v -k -H "Authorization: Basic YWRtaW46YWRtaW4=" --resolve app.example.com:443:127.0.0.1 https://app.example.com -I 2>&1 |grep "HTTP/2 200"; then
         FAILED="true"
     fi
+
+    # cleanup
+    docker compose -f $testLinkFile down
+    docker rm -f app-example-com
+    rm $testLinkFile
 fi
 
 
