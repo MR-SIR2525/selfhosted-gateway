@@ -35,5 +35,8 @@ iptables -t nat -A POSTROUTING -o link0 -p tcp --dport 8080 -j SNAT --to-source 
 iptables -t nat -A POSTROUTING -o link0 -p tcp --dport 8443 -j SNAT --to-source 10.0.0.1
 
 # generic udp proxies
-socat UDP4-RECVFROM:18522,fork UDP4-SENDTO:10.0.0.2:18522,sp=18524,reuseaddr &
-socat UDP4-RECVFROM:18523,fork UDP4-SENDTO:10.0.0.2:18522,sp=18525,reuseaddr
+# socat UDP4-RECVFROM:18522,fork UDP4-SENDTO:10.0.0.2:18522,sp=18524,reuseaddr &
+# socat UDP4-RECVFROM:18523,fork UDP4-SENDTO:10.0.0.2:18522,sp=18525,reuseaddr &
+
+# minecraft
+socat TCP4-RECVFROM:25565,fork TCP4-SENDTO:10.0.0.2:25565,sp=25566,reuseaddr
