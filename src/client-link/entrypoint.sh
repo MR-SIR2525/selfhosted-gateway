@@ -3,8 +3,16 @@ set -euxo pipefail
 
 echo $GATEWAY_CLIENT_WG_PRIVKEY > /etc/wireguard/link0.key
 
+cleanupLink() {
+    if ip link show link0 > /dev/null 2>&1; then
+        ip link delete link0
+    fi
+}
 
-ip link add link0 type wireguard
+if ! ip link show link0 > /dev/null 2>&1; then
+    trap cleanupLink EXIT
+    ip link add link0 type wireguard
+fi
 
 wg set link0 private-key /etc/wireguard/link0.key
 wg set link0 listen-port 18521
@@ -21,28 +29,37 @@ if [ -z ${FORWARD_ONLY+x} ]; then
         echo "Configure Caddy for use with TLS backend"
         if [ ! -z ${CADDY_TLS_INSECURE+x} ]; then   # if CADDY_TLS_INSECURE
             echo "Skip TLS verification"
-            export EXPOSE=$(cat <<-END
+            EXPOSE=$(cat <<-END
 $EXPOSE {
          transport http {
             tls
             tls_insecure_skip_verify
             read_buffer 8192
          }
+         header_up X-Forwarded-Proto {scheme}
        }
 END
 )
 
         else    # CADDY_TLS_INSECURE is false
-            export EXPOSE=$(cat <<-END
+            EXPOSE=$(cat <<-END
 $EXPOSE {
          transport http {
             tls
             read_buffer 8192
          }
+         header_up X-Forwarded-Proto {scheme}
        }
 END
 )
         fi
+        else
+         EXPOSE=$(cat <<-END
+$EXPOSE {
+         header_up X-Forwarded-Proto {scheme}
+       }
+END
+)
     fi
 
     CADDYFILE='/etc/Caddyfile'
@@ -72,6 +89,7 @@ END
 END
     )
     fi
+    export EXPOSE
     export TLS_INTERNAL_CONFIG
     envsubst < /etc/Caddyfile.template > $CADDYFILE
     caddy run --config $CADDYFILE
